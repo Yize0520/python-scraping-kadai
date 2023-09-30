@@ -1,0 +1,22 @@
+!pip install requests beautifulsoup4
+
+import requests
+from bs4 import BeautifulSoup
+
+# ウェブサイトのURLを指定
+url = 'https://news.yahoo.co.jp/articles/f7dce28cb01ed6e021a3a2653a41a6d46fcea083'
+
+# ページのHTMLを取得
+response = requests.get(url)
+
+# HTMLを解析
+soup = BeautifulSoup(response.text, 'html.parser')
+
+# ニュース記事の本文を抽出（本文がpタグに含まれていると仮定）
+paragraphs = soup.find_all('p')
+article_text = '\n'.join([p.text for p in paragraphs])
+
+# 本文を出力
+print("本文:")
+print(article_text)
+
