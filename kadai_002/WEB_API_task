@@ -1,1 +1,70 @@
+import requests
 
+# 1. Google Maps APIのAPIキーを安全に入力
+google_maps_api_key = '***************************************'
+
+# 2. 駅の名前を入力
+station_name = input('駅名を入力してください: ')
+
+# 3. Google Places APIを使用してレストラン情報を取得
+def get_restaurant_info(api_key, location):
+    base_url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+    radius = 500  # レストランを検索する半径（メートル）
+
+    # リクエストパラメータの設定
+    params = {
+        'key': api_key,
+        'location': location,
+        'radius': radius,
+        'type': 'restaurant'  # レストランのみを検索
+    }
+
+    response = requests.get(base_url, params=params)
+
+    if response.status_code == 200:
+        data = response.json()
+        return data.get('results', [])
+    else:
+        print('APIリクエストエラー:', response.status_code)
+        return []
+
+# 駅名を使用して駅の座標を取得（Google Geocoding APIを使用）
+def get_station_coordinates(api_key, station_name):
+    geocoding_url = 'https://maps.googleapis.com/maps/api/geocode/json'
+
+    # リクエストパラメータの設定
+    params = {
+        'key': api_key,
+        'address': station_name
+    }
+
+    response = requests.get(geocoding_url, params=params)
+
+    if response.status_code == 200:
+        data = response.json()
+        results = data.get('results', [])
+        if results:
+            location = results[0]['geometry']['location']
+            return f"{location['lat']},{location['lng']}"
+    else:
+        print('APIリクエストエラー:', response.status_code)
+    return None
+
+# レストラン情報を取得して出力
+station_location = get_station_coordinates(google_maps_api_key, station_name)
+if station_location:
+    restaurants = get_restaurant_info(google_maps_api_key, station_location)
+    if restaurants:
+        print(f"{station_name}から500メートル以内のレストラン情報:")
+        for restaurant in restaurants:
+            name = restaurant.get('name', '不明')
+            rating = restaurant.get('rating', '評価なし')
+            address = restaurant.get('vicinity', '住所不明')
+            print(f"レストラン名: {name}")
+            print(f"評価: {rating}")
+            print(f"住所: {address}")
+            print('-' * 30)
+    else:
+        print(f"{station_name}から500メートル以内のレストランは見つかりませんでした。")
+else:
+    print(f"{station_name}の座標を取得できませんでした。")
