@@ -1,1 +1,66 @@
+import requests
+import pprint
+import getpass
+from googleapiclient.discovery import build
 
+# 1. YouTube APIの認証と初期化
+api_key = getpass.getpass("YouTube APIキーを入力してください: ")
+youtube = build('youtube', 'v3', developerKey=api_key)
+
+# 2. 検索ワードの入力
+search_query = input("検索ワードを入力してください: ")
+
+# YouTube Data APIのURL（動画検索用）
+url = 'https://www.googleapis.com/youtube/v3/search'
+
+# データを取得
+response = requests.get(
+    url,
+    params={
+        'key': api_key,  # APIキーをパラメータに追加
+        'part': 'snippet',  # 動画情報の詳細を指定
+        'q': search_query,  # 検索キーワードをパラメータに追加
+        'type': 'video',  # 動画のみを検索対象に指定
+        'maxResults': 10  # 取得する動画の最大数を指定
+    }
+)
+
+# レスポンスのJSONを取得
+json_data = response.json()
+
+# JSONの中身を確認
+# pprint.pprint(json_data)
+
+# 取得した動画のタイトルとURLを表示
+for item in json_data['items']:
+    video_title = item['snippet']['title']
+    video_id = item['id']['videoId']
+    video_url = f'https://www.youtube.com/watch?v={video_id}'
+
+    # 7. 動画の再生数を取得
+    video_stats = youtube.videos().list(
+        part='statistics',
+        id=video_id
+    ).execute()
+    view_count = video_stats['items'][0]['statistics']['viewCount']
+
+    print(f'動画タイトル: {video_title}')
+    print(f'動画再生数: {view_count}')
+
+    try:
+        # 8. 動画のコメントを取得
+        comments_response = youtube.commentThreads().list(
+            part='snippet',
+            videoId=video_id,
+            maxResults=3,  # 3件のコメントを取得
+            order='time'  # 古いコメントから順に取得
+        ).execute()
+
+        # 9. コメントを表示
+        for comment in comments_response['items']:
+            comment_text = comment['snippet']['topLevelComment']['snippet']['textDisplay']
+            print(f'コメント: {comment_text}')
+    except Exception as e:
+        print(f'コメント取得エラー: {str(e)}')
+
+    print('-' * 50)  # 動画ごとに区切り線を表示
